@@ -21,20 +21,15 @@ class AlertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg(context), //[cite: 5, 6, 8]
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.cardBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: AppTheme.cardBorderColor(context)), //[cite: 5, 6]
       ),
       child: Row(
         children: [
@@ -53,19 +48,22 @@ class AlertCard extends StatelessWidget {
               children: [
                 Text(
                   alert.title,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: scheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   alert.message,
-                  style: const TextStyle(color: Colors.black87),
+                  style: TextStyle(color: scheme.onSurfaceVariant), //[cite: 8]
                 ),
               ],
             ),
           ),
           Text(
             alert.timeAgo,
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
           ),
         ],
       ),

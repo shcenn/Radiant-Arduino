@@ -65,7 +65,9 @@ class StreetlightDetailScreen extends StatelessWidget {
                   .map(
                     (t) => Chip(
                       label: Text(t),
-                      backgroundColor: AppTheme.lightBlueBg,
+                      backgroundColor: AppTheme.summaryBg(
+                        context,
+                      ), // Updated for dark mode[cite: 3]
                     ),
                   )
                   .toList(),

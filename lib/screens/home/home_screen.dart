@@ -50,7 +50,7 @@ class HomeScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppTheme.lightBlueBg,
+              color: AppTheme.summaryBg(context), // Uses summary background helper[cite: 7]
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
@@ -58,9 +58,10 @@ class HomeScreen extends StatelessWidget {
               children: [
                 Text(
                   '$total streetlights monitored',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface, // Added explicit text color[cite: 7]
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -118,7 +119,7 @@ class _StatChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.cardBg(context), // Updated to use explicit cardBg helper[cite: 5, 7]
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(

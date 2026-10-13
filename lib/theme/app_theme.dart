@@ -11,6 +11,20 @@ class AppTheme {
   static const Color statusRed = Color(0xFFE53935);
   static const Color cardBorder = Color(0xFFE0E0E0);
 
+  static bool isDark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
+
+  /// Background for cards, alert rows, and count tiles.
+  static Color cardBg(BuildContext context) =>
+      isDark(context) ? const Color(0xFF1B232B) : Colors.white;
+
+  /// Background for the blue summary card and chips.
+  static Color summaryBg(BuildContext context) =>
+      isDark(context) ? primaryDarkBlue : lightBlueBg;
+
+  static Color cardBorderColor(BuildContext context) =>
+      isDark(context) ? const Color(0xFF2E3A46) : cardBorder;
+
   static ThemeData get theme {
     return ThemeData(
       useMaterial3: true,
