@@ -2,23 +2,26 @@ import 'package:flutter/material.dart';
 
 /// Settings tab.
 ///
-/// Dark Mode is the one control wired to real app state (passed down
-/// from the app root). Notification/monitoring toggles below are
-/// mock UI state local to this screen — they look and behave like
-/// real switches for the prototype demo, but don't persist or connect
-/// to a backend, since there's no notification/refresh system to
-/// actually control yet.
+/// Dark Mode and Log out are wired to real app state (passed down from
+/// the app root). Notification/monitoring toggles below are mock UI state
+/// local to this screen - they look and behave like real switches for the
+/// prototype demo, but don't persist or connect to a backend.
 ///
-/// No Account section: account creation/auth is out of scope for this
-/// project (the focus is the Arduino streetlight system itself).
+/// Account: shows who is signed in and lets them log out. Sign-in uses
+/// hard-coded demo accounts (see AuthService); account creation and
+/// password recovery are out of scope for this project.
 class SettingsScreen extends StatefulWidget {
   final bool isDarkMode;
   final ValueChanged<bool> onToggleDarkMode;
+  final String username;
+  final VoidCallback onLogout;
 
   const SettingsScreen({
     super.key,
     required this.isDarkMode,
     required this.onToggleDarkMode,
+    required this.username,
+    required this.onLogout,
   });
 
   @override
@@ -26,7 +29,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // Mock-only state — not wired to anything real.
+  // Mock-only state - not wired to anything real.
   bool _notificationsEnabled = true;
   bool _criticalAlerts = true;
   bool _maintenanceAlerts = true;
@@ -35,8 +38,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _refreshInterval = '1 min';
   String _defaultMapView = 'All Units';
 
+  Future<void> _confirmLogout() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text(
+          'You will need to sign in again to view the traffic lights.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) widget.onLogout();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final errorColor = Theme.of(context).colorScheme.error;
+
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(20),
@@ -46,6 +74,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
+
+          const _SectionHeader('Account'),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.person_outline),
+            title: Text(widget.username),
+            subtitle: const Text('Signed in'),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.logout, color: errorColor),
+            title: Text('Log out', style: TextStyle(color: errorColor)),
+            onTap: _confirmLogout,
+          ),
 
           const _SectionHeader('Appearance'),
           SwitchListTile(
