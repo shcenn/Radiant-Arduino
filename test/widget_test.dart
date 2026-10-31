@@ -1,30 +1,32 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:radiant/main.dart';
+import 'package:radiant/screens/auth/login_screen.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  testWidgets('Validates credentials before calling sign-in', (tester) async {
+    var called = false;
+    await tester.pumpWidget(MaterialApp(home: LoginScreen(onSignIn: (_, _) async { called = true; })));
+    await tester.tap(find.text('Sign in'));
     await tester.pump();
+    expect(find.text('Enter a valid email address.'), findsOneWidget);
+    expect(find.text('Enter your password.'), findsOneWidget);
+    expect(called, isFalse);
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('Passes trimmed email and exact password, then permits retry after failure', (tester) async {
+    final attempts = <List<String>>[];
+    await tester.pumpWidget(MaterialApp(home: LoginScreen(onSignIn: (email, password) async {
+      attempts.add([email, password]);
+      throw Exception('Sign-in unavailable');
+    })));
+    await tester.enterText(find.byType(TextFormField).at(0), ' dashboard@example.com ');
+    await tester.enterText(find.byType(TextFormField).at(1), ' private password ');
+    await tester.tap(find.text('Sign in'));
+    await tester.pumpAndSettle();
+    expect(attempts.single, ['dashboard@example.com', ' private password ']);
+    expect(find.text('Could not sign in. Please try again.'), findsOneWidget);
+    await tester.tap(find.text('Sign in'));
+    await tester.pumpAndSettle();
+    expect(attempts.length, 2);
   });
 }

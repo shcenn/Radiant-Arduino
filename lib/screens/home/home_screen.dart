@@ -1,24 +1,27 @@
 import 'package:flutter/material.dart';
 
-import '../../data/mock_data.dart';
+import '../../data/live_controller.dart';
 import '../../models/streetlight.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/status_badge.dart';
-import '../../widgets/alert_card.dart';
 
 /// The Home tab: summary card + recent alerts feed.
 ///
 /// [onNavigateToTab] lets this screen switch the bottom nav tab
-/// (0 = Home, 1 = Map, 2 = Settings) — passed down from RootNavShell.
+/// (0 = Home, 1 = Map, 2 = Settings) â€” passed down from RootNavShell.
 class HomeScreen extends StatelessWidget {
+  final LiveController live;
   final void Function(int tabIndex) onNavigateToTab;
 
-  const HomeScreen({super.key, required this.onNavigateToTab});
+  const HomeScreen({
+    super.key,
+    required this.live,
+    required this.onNavigateToTab,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final lights = MockData.streetlights;
-    final alerts = MockData.alerts;
+    final lights = live.lights;
     final total = lights.length;
     final functional = lights
         .where((l) => l.status == StreetlightStatus.functional)
@@ -26,8 +29,8 @@ class HomeScreen extends StatelessWidget {
     final warning = lights
         .where((l) => l.status == StreetlightStatus.warning)
         .length;
-    final failed = lights
-        .where((l) => l.status == StreetlightStatus.failed)
+    final offline = lights
+        .where((l) => l.status == StreetlightStatus.offline)
         .length;
 
     return SafeArea(
@@ -50,18 +53,22 @@ class HomeScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppTheme.summaryBg(context), // Uses summary background helper[cite: 7]
+              color: AppTheme.summaryBg(
+                context,
+              ), // Uses summary background helper
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$total streetlights monitored',
+                  '$total ${total == 1 ? "streetlight" : "streetlights"} configured',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface, // Added explicit text color[cite: 7]
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface, // Added explicit text color
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -77,7 +84,10 @@ class HomeScreen extends StatelessWidget {
                       status: StreetlightStatus.warning,
                     ),
                     const SizedBox(width: 8),
-                    _StatChip(count: failed, status: StreetlightStatus.failed),
+                    _StatChip(
+                      count: offline,
+                      status: StreetlightStatus.offline,
+                    ),
                   ],
                 ),
               ],
@@ -88,7 +98,7 @@ class HomeScreen extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () => onNavigateToTab(1), // Map tab
             icon: const Icon(Icons.map_outlined),
-            label: const Text('View All Streetlights'),
+            label: const Text('View Streetlight List'),
             style: ElevatedButton.styleFrom(
               minimumSize: const Size(double.infinity, 48),
             ),
@@ -96,11 +106,82 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 28),
 
           const Text(
-            'Recent Alerts',
+            'Live gateway status',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          ...alerts.map((a) => AlertCard(alert: a)),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        live.online
+                            ? Icons.cloud_done_outlined
+                            : Icons.cloud_off_outlined,
+                        color: live.online ? AppTheme.statusGreen : Colors.grey,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          live.connectionLabel,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Last synced: ${live.lastSynced}'),
+                  const SizedBox(height: 4),
+                  Text('Sensor observation: ${live.lastSeen}'),
+                  if (live.reading != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '${live.online ? "Ambient light" : "Last reported ambient light"}: ${live.reading!.dark ? "Dark" : "Daylight"}',
+                    ),
+                  ],
+                  if (live.error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        live.error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Current alerts',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          if (live.alerts.isEmpty)
+            const ListTile(
+              leading: Icon(Icons.check_circle_outline, color: Colors.green),
+              title: Text('No monitoring alerts'),
+              subtitle: Text('All configured channels are reporting normally.'),
+            ),
+          for (final alert in live.alerts)
+            Card(
+              child: ListTile(
+                leading: Icon(
+                  Icons.warning_amber_rounded,
+                  color: alert.status.color,
+                ),
+                title: Text(alert.title),
+                subtitle: Text(alert.detail),
+                onTap: () => onNavigateToTab(1),
+                trailing: const Icon(Icons.chevron_right),
+              ),
+            ),
         ],
       ),
     );
@@ -119,7 +200,9 @@ class _StatChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: AppTheme.cardBg(context), // Updated to use explicit cardBg helper[cite: 5, 7]
+          color: AppTheme.cardBg(
+            context,
+          ), // Updated to use explicit cardBg helper
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(

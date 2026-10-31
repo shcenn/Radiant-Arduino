@@ -1,183 +1,90 @@
 import 'package:flutter/material.dart';
 
-/// Settings tab.
-///
-/// Dark Mode is the one control wired to real app state (passed down
-/// from the app root). Notification/monitoring toggles below are
-/// mock UI state local to this screen — they look and behave like
-/// real switches for the prototype demo, but don't persist or connect
-/// to a backend, since there's no notification/refresh system to
-/// actually control yet.
-///
-/// No Account section: account creation/auth is out of scope for this
-/// project (the focus is the Arduino streetlight system itself).
 class SettingsScreen extends StatefulWidget {
   final bool isDarkMode;
   final ValueChanged<bool> onToggleDarkMode;
-
+  final String email;
+  final Future<void> Function() onSignOut;
   const SettingsScreen({
     super.key,
     required this.isDarkMode,
     required this.onToggleDarkMode,
+    required this.email,
+    required this.onSignOut,
   });
-
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // Mock-only state — not wired to anything real.
-  bool _notificationsEnabled = true;
-  bool _criticalAlerts = true;
-  bool _maintenanceAlerts = true;
-  bool _dailyEnergySummary = false;
-  bool _autoRefresh = true;
-  String _refreshInterval = '1 min';
-  String _defaultMapView = 'All Units';
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          const Text(
-            'Settings',
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 24),
-
-          const _SectionHeader('Appearance'),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            secondary: const Icon(Icons.dark_mode_outlined),
-            title: const Text('Dark Mode'),
-            value: widget.isDarkMode,
-            onChanged: widget.onToggleDarkMode,
-          ),
-
-          const _SectionHeader('Notifications'),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            secondary: const Icon(Icons.notifications_outlined),
-            title: const Text('Notifications'),
-            value: _notificationsEnabled,
-            onChanged: (v) => setState(() => _notificationsEnabled = v),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            secondary: const Icon(Icons.warning_amber_outlined),
-            title: const Text('Critical Failure Alerts'),
-            value: _criticalAlerts,
-            onChanged: _notificationsEnabled
-                ? (v) => setState(() => _criticalAlerts = v)
-                : null,
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            secondary: const Icon(Icons.build_outlined),
-            title: const Text('Maintenance Alerts'),
-            value: _maintenanceAlerts,
-            onChanged: _notificationsEnabled
-                ? (v) => setState(() => _maintenanceAlerts = v)
-                : null,
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            secondary: const Icon(Icons.bolt_outlined),
-            title: const Text('Daily Energy Summary'),
-            value: _dailyEnergySummary,
-            onChanged: _notificationsEnabled
-                ? (v) => setState(() => _dailyEnergySummary = v)
-                : null,
-          ),
-
-          const _SectionHeader('Monitoring'),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            secondary: const Icon(Icons.sync),
-            title: const Text('Auto-refresh Data'),
-            value: _autoRefresh,
-            onChanged: (v) => setState(() => _autoRefresh = v),
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.timer_outlined),
-            title: const Text('Refresh Interval'),
-            trailing: DropdownButton<String>(
-              value: _refreshInterval,
-              underline: const SizedBox.shrink(),
-              items: const [
-                '30 sec',
-                '1 min',
-                '5 min',
-                '15 min',
-              ].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
-              onChanged: _autoRefresh
-                  ? (v) => setState(() => _refreshInterval = v!)
-                  : null,
-            ),
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.map_outlined),
-            title: const Text('Default Map View'),
-            trailing: DropdownButton<String>(
-              value: _defaultMapView,
-              underline: const SizedBox.shrink(),
-              items: const [
-                'All Units',
-                'Warnings Only',
-                'Failures Only',
-              ].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
-              onChanged: (v) => setState(() => _defaultMapView = v!),
-            ),
-          ),
-
-          const _SectionHeader('About'),
-          const ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.info_outline),
-            title: Text('About Radiant'),
-            subtitle: Text(
-              'Arduino-based adaptive streetlight monitoring prototype, '
-              'ITE 013 — Application Development and Emerging Technologies.',
-            ),
-          ),
-          const ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.help_outline),
-            title: Text('Help & Support'),
-          ),
-          const ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.numbers_outlined),
-            title: Text('Version'),
-            trailing: Text('1.0.0', style: TextStyle(color: Colors.grey)),
-          ),
-        ],
-      ),
-    );
+  bool _busy = false;
+  Future<void> _signOut() async {
+    setState(() => _busy = true);
+    try {
+      await widget.onSignOut();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not sign out. Try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader(this.title);
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 8),
-      child: Text(
-        title.toUpperCase(),
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.8,
-          color: Theme.of(context).colorScheme.primary,
+  Widget build(BuildContext context) => SafeArea(
+    child: ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        const Text(
+          'Settings',
+          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
         ),
-      ),
-    );
-  }
+        const SizedBox(height: 24),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.dark_mode_outlined),
+          title: const Text('Dark Mode'),
+          value: widget.isDarkMode,
+          onChanged: widget.onToggleDarkMode,
+        ),
+        const Divider(),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.person_outline),
+          title: const Text('Signed in as'),
+          subtitle: Text(widget.email),
+        ),
+        OutlinedButton.icon(
+          onPressed: _busy ? null : _signOut,
+          icon: const Icon(Icons.logout),
+          label: Text(_busy ? 'Signing out...' : 'Sign out'),
+        ),
+        const SizedBox(height: 24),
+        const ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.sync),
+          title: Text('Live monitoring'),
+          subtitle: Text(
+            'Four units stay listed. Readings delayed over 15 seconds show Warning; telemetry expires after 30 seconds. Missing channels and invalid data also raise alerts.',
+          ),
+        ),
+        const ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.info_outline),
+          title: Text('About Radiant'),
+          subtitle: Text(
+            'Arduino streetlight monitoring prototype. The controller operates locally; the app displays its reported states.',
+          ),
+        ),
+        const ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text('Version'),
+          trailing: Text('1.0.0'),
+        ),
+      ],
+    ),
+  );
 }

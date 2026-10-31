@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/streetlight.dart';
 import '../theme/app_theme.dart';
 import 'status_badge.dart';
+import 'unit_indicators.dart';
 
 class StreetlightCard extends StatelessWidget {
   final Streetlight light;
@@ -45,9 +46,13 @@ class StreetlightCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    light.location,
+                    light.statusReason.isEmpty
+                        ? light.location
+                        : light.statusReason,
                     style: const TextStyle(color: Colors.grey, fontSize: 13),
                   ),
+                  const SizedBox(height: 6),
+                  UnitIndicators(light: light),
                 ],
               ),
             ),
